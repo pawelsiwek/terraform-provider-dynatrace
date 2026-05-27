@@ -1,0 +1,15 @@
+# grep -F patterns. Any match in changed files = verify.sh fails.
+# Keep one pattern per line, no comments on data lines.
+
+value_overrides_json
+extra_json
+json.RawMessage
+map[string]interface{}
+map[string]any
+interface{}
+panic("TODO
+panic("FIXME
+// TODO
+// FIXME
+// WIP
+// XXX

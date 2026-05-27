@@ -1,0 +1,6 @@
+# Glob-style allowlist. Anything not matched here MUST NOT be edited.
+# Evaluated by verify.sh via `git diff --name-only` against this list.
+
+provider/dynatrace/api/extensions/dac/awsmonitoring/settings/*.go
+provider/dynatrace/api/extensions/dac/awsmonitoring/settings/*_test.go
+extension-versions/da-aws.json

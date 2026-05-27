@@ -1,0 +1,7 @@
+{
+  "extension": "com.dynatrace.extension.da-aws",
+  "version": "1.0.7",
+  "schema_sha256": "REPLACE_ME_ON_FIRST_RUN",
+  "pinned_at": "2026-05-27",
+  "notes": "Internal compatibility pin. Bumped by .github/workflows/da-aws-schema-watch.yml via Copilot Coding Agent. Independent from the user-facing extension_version attribute (see spec/task.md §11)."
+}

@@ -1,0 +1,197 @@
+name: da-aws-schema-watch
+
+# Detects new versions of com.dynatrace.extension.da-aws on the configured
+# Dynatrace tenant. If the pinned version (extension-versions/da-aws.json)
+# is behind, opens an issue and assigns @copilot so the Coding Agent
+# generates a typed-schema bump PR.
+#
+# Detection is deterministic (this workflow). Code generation is delegated
+# to the agent under .github/agents/da-aws-bump/.
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # daily 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      force_bump:
+        description: "Open an issue even if versions match (smoke-test the agent)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: da-aws-schema-watch
+  cancel-in-progress: false
+
+env:
+  EXTENSION_NAME: com.dynatrace.extension.da-aws
+  PIN_FILE: extension-versions/da-aws.json
+
+jobs:
+  detect-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read pinned version
+        id: pin
+        run: |
+          set -euo pipefail
+          PIN_VERSION=$(jq -r .version "$PIN_FILE")
+          PIN_HASH=$(jq -r .schema_sha256 "$PIN_FILE")
+          echo "version=$PIN_VERSION" >> "$GITHUB_OUTPUT"
+          echo "hash=$PIN_HASH"       >> "$GITHUB_OUTPUT"
+
+      - name: Fetch latest version + schema from tenant
+        id: latest
+        env:
+          DYNATRACE_ENV_URL: ${{ secrets.DYNATRACE_ENV_URL }}
+          DYNATRACE_API_TOKEN: ${{ secrets.DYNATRACE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          BASE="${DYNATRACE_ENV_URL%/}/api/v2/extensions/${EXTENSION_NAME}"
+          AUTH="Authorization: Api-Token ${DYNATRACE_API_TOKEN}"
+
+          # Highest semver from the versions list
+          curl -sfS -H "$AUTH" "$BASE" \
+            | jq -r '.extensionVersions[]' \
+            | sort -V | tail -1 > .latest_version
+          LATEST=$(cat .latest_version)
+          echo "version=$LATEST" >> "$GITHUB_OUTPUT"
+
+          # Full schema for the highest version
+          curl -sfS -H "$AUTH" "$BASE/${LATEST}/schema" > schema_new.json
+
+          # Canonical hash (sorted keys, no whitespace)
+          HASH=$(python3 -c '
+          import hashlib, json, sys
+          with open("schema_new.json") as f:
+              data = json.load(f)
+          canon = json.dumps(data, sort_keys=True, separators=(",", ":"))
+          print(hashlib.sha256(canon.encode()).hexdigest())')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Decide whether to bump
+        id: decide
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.pin.outputs.version }}" != "${{ steps.latest.outputs.version }}" ]]; then
+            echo "reason=version" >> "$GITHUB_OUTPUT"
+            echo "bump=true"      >> "$GITHUB_OUTPUT"
+          elif [[ "${{ steps.pin.outputs.hash }}" != "${{ steps.latest.outputs.hash }}" \
+                && "${{ steps.pin.outputs.hash }}" != "REPLACE_ME_ON_FIRST_RUN" ]]; then
+            echo "reason=schema-revision" >> "$GITHUB_OUTPUT"
+            echo "bump=true"              >> "$GITHUB_OUTPUT"
+          elif [[ "${{ inputs.force_bump }}" == "true" ]]; then
+            echo "reason=force"  >> "$GITHUB_OUTPUT"
+            echo "bump=true"     >> "$GITHUB_OUTPUT"
+          else
+            echo "bump=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stop if up-to-date
+        if: steps.decide.outputs.bump != 'true'
+        run: |
+          echo "Pinned (${{ steps.pin.outputs.version }}) matches latest. Nothing to do."
+
+      - name: Fetch old schema (for diff)
+        if: steps.decide.outputs.bump == 'true' && steps.pin.outputs.version != steps.latest.outputs.version
+        env:
+          DYNATRACE_ENV_URL: ${{ secrets.DYNATRACE_ENV_URL }}
+          DYNATRACE_API_TOKEN: ${{ secrets.DYNATRACE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          BASE="${DYNATRACE_ENV_URL%/}/api/v2/extensions/${EXTENSION_NAME}"
+          curl -sfS -H "Authorization: Api-Token ${DYNATRACE_API_TOKEN}" \
+            "$BASE/${{ steps.pin.outputs.version }}/schema" > schema_old.json
+
+      - name: Synthesize empty old schema for force/first-run
+        if: steps.decide.outputs.bump == 'true' && steps.pin.outputs.version == steps.latest.outputs.version
+        run: echo '{}' > schema_old.json
+
+      - name: Compute schema diff
+        if: steps.decide.outputs.bump == 'true'
+        run: |
+          set -euo pipefail
+          python3 .github/agents/da-aws-bump/schema_diff.py \
+            schema_old.json schema_new.json \
+            "${{ steps.pin.outputs.version }}" \
+            "${{ steps.latest.outputs.version }}" \
+            > schema_diff.json
+          echo "---- diff summary ----"
+          jq '{added: (.added|length), modified: (.modified|length), removed: (.removed|length)}' schema_diff.json
+
+      - name: Upload schemas + diff as artifact
+        if: steps.decide.outputs.bump == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: da-aws-schema-${{ steps.latest.outputs.version }}
+          path: |
+            schema_old.json
+            schema_new.json
+            schema_diff.json
+          retention-days: 90
+
+      - name: Open issue + assign Copilot
+        if: steps.decide.outputs.bump == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OLD_V: ${{ steps.pin.outputs.version }}
+          NEW_V: ${{ steps.latest.outputs.version }}
+          NEW_HASH: ${{ steps.latest.outputs.hash }}
+          REASON: ${{ steps.decide.outputs.reason }}
+        run: |
+          set -euo pipefail
+
+          ADDED=$(jq '.added | length'    schema_diff.json)
+          MODIFIED=$(jq '.modified | length' schema_diff.json)
+          REMOVED=$(jq '.removed | length'  schema_diff.json)
+
+          ART_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          BODY=$(cat <<EOF
+          ## Schema bump request: \`${EXTENSION_NAME}\` ${OLD_V} → ${NEW_V}
+
+          Trigger: **${REASON}**
+
+          - Added paths: **${ADDED}**
+          - Modified paths: **${MODIFIED}**
+          - Removed paths: **${REMOVED}**
+
+          Full \`schema_diff.json\` + both schemas attached as workflow
+          artifact: ${ART_URL}
+
+          ---
+
+          @copilot Please read
+          [\`/.github/agents/da-aws-bump/AGENT_INSTRUCTIONS.md\`](.github/agents/da-aws-bump/AGENT_INSTRUCTIONS.md)
+          **in full** before making any change, and follow the decision
+          procedure literally. Hard rules in
+          [\`/.github/copilot-instructions.md\`](.github/copilot-instructions.md)
+          also apply.
+
+          After implementing, update \`${PIN_FILE}\`:
+
+          \`\`\`json
+          {
+            "extension": "${EXTENSION_NAME}",
+            "version": "${NEW_V}",
+            "schema_sha256": "${NEW_HASH}",
+            "pinned_at": "$(date -u +%Y-%m-%d)",
+            "notes": "Bumped by da-aws-schema-watch (run ${{ github.run_id }})."
+          }
+          \`\`\`
+
+          Open the PR as **draft** with label \`needs-human-review\`.
+          Do not enable auto-merge.
+          EOF
+          )
+
+          gh issue create \
+            --title "chore(da-aws): schema bump ${OLD_V} -> ${NEW_V}" \
+            --body  "$BODY" \
+            --label "needs-human-review,automation,da-aws" \
+            --assignee "copilot"
