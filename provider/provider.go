@@ -41,6 +41,7 @@ import (
 	"github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/extensions/active_version"
 	"github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/extensions/latest_version"
 	failure_detection_parameters "github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/failuredetection/parameters"
+	gcpdynatraceprincipal "github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/gcpdynatraceprincipal"
 	genericsettingsds "github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/generic/settings"
 	geocities "github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/geographicregions/cities"
 	geocountries "github.com/dynatrace-oss/terraform-provider-dynatrace/datasources/geographicregions/countries"
@@ -285,6 +286,7 @@ func Provider() *schema.Provider {
 			"dynatrace_platform_slo_template":           objectivetemplates.DataSource(),
 			"dynatrace_hub_extension_v2_active_version": active_version.DataSource(),
 			"dynatrace_hub_extension_v2_latest_version": latest_version.DataSource(),
+			"dynatrace_gcp_dynatrace_principal":         gcpdynatraceprincipal.DataSource(),
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"dynatrace_custom_service":                                 resources.NewGeneric(export.ResourceTypes.CustomService).Resource(),
@@ -587,6 +589,9 @@ func Provider() *schema.Provider {
 			"dynatrace_managed_network_zones":                          networkzones.Resource(),
 			"dynatrace_hub_extension_config":                           resources.NewGeneric(export.ResourceTypes.HubExtensionConfig).Resource(),
 			"dynatrace_hub_extension_v2_config":                        resources.NewGeneric(export.ResourceTypes.HubExtensionV2Config).Resource(),
+			"dynatrace_aws_monitoring_configuration":                   resources.NewGeneric(export.ResourceTypes.AWSMonitoringConfiguration).Resource(),
+			"dynatrace_azure_monitoring_configuration":                 resources.NewGeneric(export.ResourceTypes.AzureMonitoringConfiguration).Resource(),
+			"dynatrace_gcp_monitoring_configuration":                   resources.NewGeneric(export.ResourceTypes.GCPMonitoringConfiguration).Resource(),
 			"dynatrace_hub_extension_active_version":                   resources.NewGeneric(export.ResourceTypes.HubActiveExtensionVersion).Resource(),
 			"dynatrace_document":                                       resources.NewGeneric(export.ResourceTypes.Documents).Resource(),
 			"dynatrace_direct_shares":                                  resources.NewGeneric(export.ResourceTypes.DirectShares).Resource(),
@@ -720,6 +725,21 @@ func Provider() *schema.Provider {
 			"dynatrace_openpipeline_v2_usersessions_pipelinegroups":    resources.NewGeneric(export.ResourceTypes.OpenpipelineUsersessionsPipelinegroups).Resource(),
 			"dynatrace_process_grouping_rules":                         resources.NewGeneric(export.ResourceTypes.ProcessGroupingRules).Resource(),
 			"dynatrace_maintenance_windows":                            resources.NewGeneric(export.ResourceTypes.MaintenanceWindows).Resource(),
+			"dynatrace_gcp_connection":                                 resources.NewGeneric(export.ResourceTypes.GCPConnection).Resource(),
+			"dynatrace_gcp_principal":                                  resources.NewGeneric(export.ResourceTypes.GCPPrincipal).Resource(),
+			"dynatrace_openpipeline_v2_bizevents_dataforwarding":       resources.NewGeneric(export.ResourceTypes.OpenpipelineBizeventsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_davis_events_dataforwarding":    resources.NewGeneric(export.ResourceTypes.OpenpipelineDavisEventsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_davis_problems_dataforwarding":  resources.NewGeneric(export.ResourceTypes.OpenpipelineDavisProblemsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_events_dataforwarding":          resources.NewGeneric(export.ResourceTypes.OpenpipelineEventsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_events_sdlc_dataforwarding":     resources.NewGeneric(export.ResourceTypes.OpenpipelineEventsSdlcDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_events_security_dataforwarding": resources.NewGeneric(export.ResourceTypes.OpenpipelineEventsSecurityDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_logs_dataforwarding":            resources.NewGeneric(export.ResourceTypes.OpenpipelineLogsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_metrics_dataforwarding":         resources.NewGeneric(export.ResourceTypes.OpenpipelineMetricsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_security_events_dataforwarding": resources.NewGeneric(export.ResourceTypes.OpenpipelineSecurityEventsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_spans_dataforwarding":           resources.NewGeneric(export.ResourceTypes.OpenpipelineSpansDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_system_events_dataforwarding":   resources.NewGeneric(export.ResourceTypes.OpenpipelineSystemEventsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_user_events_dataforwarding":     resources.NewGeneric(export.ResourceTypes.OpenpipelineUserEventsDataforwarding).Resource(),
+			"dynatrace_openpipeline_v2_usersessions_dataforwarding":    resources.NewGeneric(export.ResourceTypes.OpenpipelineUsersessionsDataforwarding).Resource(),
 		},
 		ConfigureContextFunc: config.ProviderConfigure,
 	}

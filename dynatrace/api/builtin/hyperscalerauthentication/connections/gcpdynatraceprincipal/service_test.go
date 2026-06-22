@@ -30,8 +30,6 @@ import (
 )
 
 func TestAccResourceGcpPrincipal(t *testing.T) {
-	t.Skip("Enable this test as soon as the dynatrace_gcp_principal resource is referenced in provider.go")
-
 	resourceConfig, _ := api.ReadTfConfig(t, "testdata/resource.tf")
 
 	resource.Test(t, resource.TestCase{
@@ -43,7 +41,7 @@ func TestAccResourceGcpPrincipal(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: resourceConfig,
-				Check:  resource.TestMatchOutput("records", regexp.MustCompile(`iam\.gserviceaccount\.com$`)),
+				Check:  resource.TestMatchOutput("principal_output", regexp.MustCompile(`iam\.gserviceaccount\.com$`)),
 			},
 		},
 	})
