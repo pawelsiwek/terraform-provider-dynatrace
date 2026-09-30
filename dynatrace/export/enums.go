@@ -546,6 +546,24 @@ var ResourceTypes = struct {
 	OpenpipelineUsersessionsPipelinegroups   ResourceType
 	ProcessGroupingRules                     ResourceType
 	MaintenanceWindows                       ResourceType
+	GCPConnection                            ResourceType
+	GCPPrincipal                             ResourceType
+	OpenpipelineBizeventsDataforwarding      ResourceType
+	OpenpipelineDavisEventsDataforwarding    ResourceType
+	OpenpipelineDavisProblemsDataforwarding  ResourceType
+	OpenpipelineEventsDataforwarding         ResourceType
+	OpenpipelineEventsSdlcDataforwarding     ResourceType
+	OpenpipelineEventsSecurityDataforwarding ResourceType
+	OpenpipelineLogsDataforwarding           ResourceType
+	OpenpipelineMetricsDataforwarding        ResourceType
+	OpenpipelineSecurityEventsDataforwarding ResourceType
+	OpenpipelineSpansDataforwarding          ResourceType
+	OpenpipelineSystemEventsDataforwarding   ResourceType
+	OpenpipelineUserEventsDataforwarding     ResourceType
+	OpenpipelineUsersessionsDataforwarding   ResourceType
+	AWSMonitoringConfiguration               ResourceType
+	AzureMonitoringConfiguration             ResourceType
+	GCPMonitoringConfiguration               ResourceType
 }{
 	"dynatrace_autotag",
 	"dynatrace_autotag_v2",
@@ -970,6 +988,24 @@ var ResourceTypes = struct {
 	"dynatrace_openpipeline_v2_usersessions_pipelinegroups",
 	"dynatrace_process_grouping_rules",
 	"dynatrace_maintenance_windows",
+	"dynatrace_gcp_connection",
+	"dynatrace_gcp_principal",
+	"dynatrace_openpipeline_v2_bizevents_dataforwarding",
+	"dynatrace_openpipeline_v2_davis_events_dataforwarding",
+	"dynatrace_openpipeline_v2_davis_problems_dataforwarding",
+	"dynatrace_openpipeline_v2_events_dataforwarding",
+	"dynatrace_openpipeline_v2_events_sdlc_dataforwarding",
+	"dynatrace_openpipeline_v2_events_security_dataforwarding",
+	"dynatrace_openpipeline_v2_logs_dataforwarding",
+	"dynatrace_openpipeline_v2_metrics_dataforwarding",
+	"dynatrace_openpipeline_v2_security_events_dataforwarding",
+	"dynatrace_openpipeline_v2_spans_dataforwarding",
+	"dynatrace_openpipeline_v2_system_events_dataforwarding",
+	"dynatrace_openpipeline_v2_user_events_dataforwarding",
+	"dynatrace_openpipeline_v2_usersessions_dataforwarding",
+	"dynatrace_aws_monitoring_configuration",
+	"dynatrace_azure_monitoring_configuration",
+	"dynatrace_gcp_monitoring_configuration",
 }
 
 func (me ResourceType) GetFolderName(override string) string {
